@@ -101,7 +101,7 @@ void induced_sort_lms_substrings(vector<int> &s, vector<int>& sa, vector<int>& p
 
 	move_bk_pointers_to_start(map, b);
 	induced_sort_lms_substring_substep2(s, sa, t, b);
-	
+
 	move_bk_pointers_to_end(map, b);
 	induced_sort_lms_substring_substep3(s, sa, t, b);
 
@@ -120,7 +120,7 @@ void induced_sort_lms_substrings_top(vector<int> &s, vector<int>& sa1, vector<in
 
 	move_bk_pointers_to_end(map, b);
 
-	for (int i = sa2.size() - 1; i >=0; i--) {
+	for (int i = sa2.size() - 1; i >= 0; i--) {
 		int index = p2[sa2[i]];
 		sa1[b[s[index]]] = index;
 		b[s[index]]--;
@@ -208,18 +208,18 @@ int sa_is(vector<int> &s, vector<int>& sa) {
 
 	vector<int> sa1;
 	if (unique) {
-		induced_sort_lms_substrings_top(s, sa, s1, p1, t);
-		return 0;
-		//fill_sa(sa1, sa.size());
-		
+		fill_sa(sa1, s1.size());
+		for (int i = 0; i < s1.size(); i++) {
+			sa1[s1[i]] = i;
+		}
 	}
 	else {
 		fill_sa(sa1, s1.size());
 		sa_is(s1, sa1);
-		induced_sort_lms_substrings_top(s, sa, sa1, p1, t);
+		
 
 	}
-
+	induced_sort_lms_substrings_top(s, sa, sa1, p1, t);
 	return 0;
 }
 
