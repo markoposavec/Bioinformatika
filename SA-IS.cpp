@@ -7,7 +7,7 @@
 
 using namespace std;
 
-void classify_characters(vector<int> s, vector<bool> &t) {
+void classify_characters(vector<int> &s, vector<bool>& t) {
 	for (int i = s.size() - 1; i >= 0; i--) {
 		if (i == s.size() - 1) {
 			t.push_back(true);
@@ -24,7 +24,7 @@ void classify_characters(vector<int> s, vector<bool> &t) {
 	reverse(t.begin(), t.end());
 }
 
-void find_lms_substrings(vector<int> s, vector<bool> t, vector<int> &p1) {
+void find_lms_substrings(vector<int> &s, vector<bool> &t, vector<int>& p1) {
 	for (int i = 1; i < s.size(); i++) {
 		if ((t[i] == true && t[i - 1] == false)) {
 			p1.push_back(i);
@@ -32,7 +32,7 @@ void find_lms_substrings(vector<int> s, vector<bool> t, vector<int> &p1) {
 	}
 }
 
-void move_bk_pointers_to_end(map<char, int> mapa, map<char, int> &b) {
+void move_bk_pointers_to_end(map<int, int> &mapa, map<int, int>& b) {
 	int counter = 0;
 	for (auto const& x : mapa) {
 		b[x.first] = counter + x.second - 1;
@@ -40,7 +40,7 @@ void move_bk_pointers_to_end(map<char, int> mapa, map<char, int> &b) {
 	}
 }
 
-void move_bk_pointers_to_start(map<char, int> mapa, map<char, int> &b) {
+void move_bk_pointers_to_start(map<int, int> &mapa, map<int, int>& b) {
 	int counter = 0;
 	for (auto const& x : mapa)
 	{
@@ -49,17 +49,45 @@ void move_bk_pointers_to_start(map<char, int> mapa, map<char, int> &b) {
 	}
 }
 
-void induced_sort_lms_substrings(vector<int> s, vector<int> &sa, vector<int> &p1, vector<bool> t) {
-	map<char, int> b;
-	map<char, int> map;
+void induced_sort_lms_substring_substep2(vector<int> &s, vector<int>& sa, vector<bool> &t, map<int, int> &b)
+{
+	for (int i = 0; i < sa.size(); i++) {
+		if (sa[i] > 0) {
+			if (!t[sa[i] - 1]) {
+				int k = s[sa[i] - 1];
+				sa[b[k]] = sa[i] - 1;
+				b[k]++;
+			}
+		}
+	}
+
+}
+
+void induced_sort_lms_substring_substep3(vector<int> &s, vector<int>& sa, vector<bool> &t, map<int, int> &b)
+{
+	for (int i = sa.size() - 1; i >= 0; i--) {
+		if (sa[i] > 0) {
+			if (t[sa[i] - 1]) {
+				int k = s[sa[i] - 1];
+				sa[b[k]] = sa[i] - 1;
+				b[k]--;
+			}
+		}
+	}
+
+}
+
+void induced_sort_lms_substrings(vector<int> &s, vector<int>& sa, vector<int>& p1, vector<bool> &t) {
+	map<int, int> b;
+	map<int, int> map;
 	for (long i = 0; i < s.size(); i++) {
 		map[s[i]]++;
 	}
 
-	for (int i = 0; i < s.size(); i++) {
-		sa.push_back(-1);
+	for (int i = 0; i < sa.size(); i++) {
+		sa[i] = -1;
 	}
-	
+
 	move_bk_pointers_to_end(map, b);
 
 	int counter = 0;
@@ -72,32 +100,42 @@ void induced_sort_lms_substrings(vector<int> s, vector<int> &sa, vector<int> &p1
 	}
 
 	move_bk_pointers_to_start(map, b);
+	induced_sort_lms_substring_substep2(s, sa, t, b);
+	
+	move_bk_pointers_to_end(map, b);
+	induced_sort_lms_substring_substep3(s, sa, t, b);
 
-	for (int i = 0; i < sa.size(); i++) {
-		if (sa[i] > 0) {
-			if (!t[sa[i] - 1]) {
-				char k = s[sa[i] - 1];
-				sa[b[k]] = sa[i] - 1;
-				b[k]++;
-			}
-		}
+}
+
+void induced_sort_lms_substrings_top(vector<int> &s, vector<int>& sa1, vector<int> &sa2, vector<int>&p2, vector<bool> &t1) {
+	map<int, int> b;
+	map<int, int> map;
+	for (long i = 0; i < s.size(); i++) {
+		map[s[i]]++;
+	}
+
+	for (int i = 0; i < sa1.size(); i++) {
+		sa1[i] = -1;
 	}
 
 	move_bk_pointers_to_end(map, b);
 
-	for (int i = sa.size() - 1; i >= 0; i--) {
-		if (sa[i] > 0) {
-			if (t[sa[i] - 1]) {
-				char k = s[sa[i] - 1];
-				sa[b[k]] = sa[i] - 1;
-				b[k]--;
-			}
-		}
+	for (int i = sa2.size() - 1; i >=0; i--) {
+		int index = p2[sa2[i]];
+		sa1[b[s[index]]] = index;
+		b[s[index]]--;
 	}
+
+	move_bk_pointers_to_start(map, b);
+	induced_sort_lms_substring_substep2(s, sa1, t1, b);
+
+	move_bk_pointers_to_end(map, b);
+	induced_sort_lms_substring_substep3(s, sa1, t1, b);
 
 }
 
-bool compare(vector<int> s, vector<bool> t, int last, int index) {
+
+bool compare(vector<int> &s, vector<bool> &t, int last, int index) {
 	if (last == -1)
 		return false;
 	bool same = true;
@@ -107,14 +145,14 @@ bool compare(vector<int> s, vector<bool> t, int last, int index) {
 			break;
 		}
 		if (t[i] == t[j] && t[i] && i != last) break;
-		
+
 		i++;
 		j++;
 	}
 	return same;
 }
 
-pair<vector<int>, bool> lms_substring_naming(vector<int> s, vector<int> sa, vector<bool> t, vector<int> p1) {
+pair<vector<int>, bool> lms_substring_naming(vector<int> &s, vector<int> &sa, vector<bool> &t, vector<int> &p1) {
 	int last = -1;
 	vector<int> s1;
 	for (int i = 0; i < p1.size(); i++) {
@@ -131,7 +169,8 @@ pair<vector<int>, bool> lms_substring_naming(vector<int> s, vector<int> sa, vect
 					unique = false;
 					s1[j] = name_counter - 1;
 					last = index;
-				} else {
+				}
+				else {
 					s1[j] = name_counter++;
 					last = index;
 				}
@@ -142,7 +181,14 @@ pair<vector<int>, bool> lms_substring_naming(vector<int> s, vector<int> sa, vect
 	return make_pair(s1, unique);
 }
 
-int sa_is(vector<int> s, vector<int> &sa) {
+void fill_sa(vector<int>& sa, int n)
+{
+	for (int i = 0; i < n; i++) {
+		sa.push_back(-1);
+	}
+}
+
+int sa_is(vector<int> &s, vector<int>& sa) {
 	int n = s.size();
 	vector<bool> t;
 	vector<int> p1;
@@ -160,10 +206,18 @@ int sa_is(vector<int> s, vector<int> &sa) {
 	bool unique = substring_naming.second;
 	s1 = substring_naming.first;
 
+	vector<int> sa1;
 	if (unique) {
+		induced_sort_lms_substrings_top(s, sa, s1, p1, t);
+		return 0;
+		//fill_sa(sa1, sa.size());
+		
+	}
+	else {
+		fill_sa(sa1, s1.size());
+		sa_is(s1, sa1);
+		induced_sort_lms_substrings_top(s, sa, sa1, p1, t);
 
-	} else {
-		sa_is(s1, sa);
 	}
 
 	return 0;
@@ -177,5 +231,7 @@ int main() {
 	for (int i = 0; i < temp.length(); i++) {
 		s.push_back(temp[i]);
 	}
+	fill_sa(sa, s.size());
 	sa_is(s, sa);
+	int g = 0;
 }
