@@ -160,7 +160,8 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 		sa[i] = -1;
 		sa[sa_index] = index;
 		if (level == 2) {
-			lcp[sa_index] = find_lcp_value(sa_index, sa);
+			lcp[sa_index] = -1;
+			lcp[sa_index + 1] = find_lcp_value(sa_index, sa);
 		}
 		b[sa[index + offset]]--;
 	}
@@ -174,9 +175,18 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 				if (level == 2) {
 					if (b[k] == 0) {
 						lcp[b[k]] = 0;
-					} else if (sa[b[k] - 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] - 1] + offset]) {
+						continue;
+					}
+					//L/S seam
+					if (b[k] + 1 < offset && sa[sa[b[k]] + offset] == sa[sa[b[k] + 1] + offset] && sa[b[k] + 1] != -1)
+					{
+						lcp[b[k] + 1] = find_lcp_value(b[k], sa);
+					}
+					
+					if (sa[b[k] - 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] - 1] + offset]) {
 						lcp[b[k]] = 0;
-					} else {
+					}
+					else {
 						int iteration = 0;
 						for (int j = 0; j < i; j++) {
 							if (sa[j] == sa[b[k] - 1] + 1) {
@@ -185,7 +195,7 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 							}
 						}
 
-						if (sa[offset + iteration] != sa[offset + i]) {
+						if (sa[offset + sa[iteration]] != sa[offset + sa[i]]) {
 							lcp[b[k]] = 1;
 						}
 						else {
@@ -208,18 +218,26 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 				if (level == 2) {
 					if (b[k] + 1 == sa.size()) {
 
-					} else if (sa[b[k] + 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] + 1] + offset]) {
-					
-					} else {
+					}
+					else if (sa[b[k] + 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] + 1] + offset]) {
+
+					}
+					else {
+						//L/S seam
+						if (b[k] - 1 > 0 && sa[sa[b[k]] + offset] == sa[sa[b[k] - 1] + offset] && t1[sa[b[k] - 1]] == false)
+						{
+							lcp[b[k]] = find_lcp_value(b[k] - 1, sa);
+						}
+
 						int iteration = 0;
-						for (int j = offset - 1; j > i; j--) {
-							if (sa[j] == sa[b[k] - 1] + 1) {
+						for (int j = len - 1; j > i; j--) {
+							if (sa[j] == sa[b[k] + 1] + 1) {
 								iteration = j;
 								break;
 							}
 						}
 
-						if (sa[offset + iteration] != sa[offset + i]) {
+						if (sa[offset + sa[iteration]] != sa[offset + sa[i]]) {
 							lcp[b[k] + 1] = 1;
 						}
 						else {
@@ -332,7 +350,8 @@ int main() {
 	vector<int> sa;
 	vector<int> lcp;
 	//string temp = "ATTAGCGAGCG$";
-	string temp = "banana$";
+	//string temp = "banana$";
+	string temp = "aaaaaa$";
 	for (int i = 0; i < temp.length(); i++) {
 		sa.push_back(-1);
 		lcp.push_back(-1);
