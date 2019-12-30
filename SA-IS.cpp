@@ -113,9 +113,9 @@ void induced_sort_lms_substrings(int level, int len, vector<int>& sa, vector<int
 
 }
 
-int find_lcp_value(int sa_index, vector<int>& sa) {
-	int first = sa[sa_index];
-	int second = sa[sa_index + 1];
+int find_lcp_value(int sa_index_first, int sa_index_second, vector<int>& sa) {
+	int first = sa[sa_index_first];
+	int second = sa[sa_index_second];
 	int offset = sa.size() / 2;
 	int counter = 0;
 	if (first == -1 || second == -1) {
@@ -129,13 +129,17 @@ int find_lcp_value(int sa_index, vector<int>& sa) {
 }
 
 int rmq(int start, int end, vector<int>& lcp) {
-	int minimum = lcp[start];
+	
+	int minimum = lcp.size();
 	for (int i = start; i <= end; i++) {
+		if (lcp[i] == -1)
+			continue;
 		if (lcp[i] < minimum) {
 			minimum = lcp[i];
 		}
 	}
-
+	if (lcp.size() == minimum)
+		return 0;
 	return minimum;
 }
 
@@ -160,15 +164,26 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 		sa[i] = -1;
 		sa[sa_index] = index;
 		if (level == 2) {
-			lcp[sa_index] = -1;
-			lcp[sa_index + 1] = find_lcp_value(sa_index, sa);
+			lcp[sa_index] = 0;
+			lcp[sa_index + 1] = find_lcp_value(sa_index, sa_index+1, sa);
 		}
 		b[sa[index + offset]]--;
 	}
 
 	move_bk_pointers_to_start(map, b);
+	int last = -1;
 	for (int i = 0; i < len; i++) {
 		if (sa[i] > 0) {
+
+			//Ovo je LS seam
+			if (level == 2 && last != -1 && t1[sa[i]] && sa[sa[i] + offset] == sa[sa[last] + offset]) {
+				lcp[i] = find_lcp_value(last, i, sa);
+				last = -1;
+			}
+			else if (level == 2 && !t1[sa[i]]) {
+				last = i;
+			}
+
 			if (!t1[sa[i] - 1]) {
 				int k = sa[offset + sa[i] - 1];
 				sa[b[k]] = sa[i] - 1;
@@ -178,10 +193,10 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 						continue;
 					}
 					//L/S seam
-					if (b[k] + 1 < offset && sa[sa[b[k]] + offset] == sa[sa[b[k] + 1] + offset] && sa[b[k] + 1] != -1)
+					/*if (b[k] + 1 < offset && sa[sa[b[k]] + offset] == sa[sa[b[k] + 1] + offset] && sa[b[k] + 1] != -1)
 					{
-						lcp[b[k] + 1] = find_lcp_value(b[k], sa);
-					}
+						lcp[b[k] + 1] = find_lcp_value(b[k], b[k]+1, sa);
+					}*/
 					
 					if (sa[b[k] - 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] - 1] + offset]) {
 						lcp[b[k]] = 0;
@@ -210,6 +225,7 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 
 
 	move_bk_pointers_to_end(map, b);
+	//ne bi diral ls seam jer bi ovde trebalo ici po redu. ak se nekaj preskoci, ne bu napisano vise...
 	for (int i = len - 1; i >= 0; i--) {
 		if (sa[i] > 0) {
 			if (t1[sa[i] - 1]) {
@@ -226,7 +242,7 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 						//L/S seam
 						if (b[k] - 1 > 0 && sa[sa[b[k]] + offset] == sa[sa[b[k] - 1] + offset] && t1[sa[b[k] - 1]] == false)
 						{
-							lcp[b[k]] = find_lcp_value(b[k] - 1, sa);
+							lcp[b[k]] = find_lcp_value(b[k] - 1, b[k], sa);
 						}
 
 						int iteration = 0;
@@ -350,8 +366,9 @@ int main() {
 	vector<int> sa;
 	vector<int> lcp;
 	//string temp = "ATTAGCGAGCG$";
-	//string temp = "banana$";
-	string temp = "aaaaaa$";
+	string temp = "banana$";
+	//string temp = "cabacbbabacbbc$";
+	//string temp = "ABANANABANDANA$";
 	for (int i = 0; i < temp.length(); i++) {
 		sa.push_back(-1);
 		lcp.push_back(-1);
