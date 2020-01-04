@@ -236,7 +236,11 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 
 					}
 					else if (sa[b[k] + 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] + 1] + offset]) {
-
+						//L/S seam
+						if (b[k] - 1 > 0 && sa[sa[b[k]] + offset] == sa[sa[b[k] - 1] + offset] && t1[sa[b[k] - 1]] == false)
+						{
+							lcp[b[k]] = find_lcp_value(b[k] - 1, b[k], sa);
+						}
 					}
 					else {
 						//L/S seam
@@ -295,33 +299,42 @@ bool lms_substring_naming(int level, int len, vector<int>& sa, vector<bool>& t, 
 	}*/
 	int counter = 0;
 	for (int i = 0; i < len; i++) {
-		for (int j = 0; j < p1.size(); j++) {
-			if (sa[i] == p1[j])
+		if(sa[i] > 0 && t[sa[i]] && !t[sa[i]-1]) {
 				sa[counter++] = sa[i];
 		}
 	}
+	//oslobodi drugu polovicu polja
+	for (int i = offset / 2; i < offset; i++)
+		sa[i] = -1;
 	bool unique = true;
 	int name_counter = 0;
 	for (int i = 0; i < p1.size(); i++) {
 		int index = sa[i];
-		for (int j = 0; j < p1.size(); j++) {
-			//Ako je zadnji onda iza�i
-			if (p1[j] == index) {
-				if (compare(level, sa, t, last, index)) {
-					//potencijalno krivo hehe
-					unique = false;
-					sa[j + offset / 2] = name_counter - 1;
-					last = index;
-				}
-				else {
-					sa[j + offset / 2] = name_counter++;
-					last = index;
-				}
-				break;
+		if (index > 0 && t[index] && !t[index - 1]) {
+			if (compare(level, sa, t, last, index)) {
+
+				unique = false;
+				sa[index / 2 + offset / 2] = name_counter - 1;
+				last = index;
+			}
+			else {
+				sa[index / 2 + offset / 2] = name_counter++;
+				last = index;
 			}
 		}
-
 	}
+	//vrati natrag imena
+	int last_empty = offset / 2;
+	for (int i = offset / 2; i < offset; i++) {
+		if (sa[i] != -1) {
+			sa[last_empty] = sa[i];
+			last_empty++;
+		}
+	}
+	
+		
+
+	
 	return unique;
 }
 
@@ -366,9 +379,10 @@ int main() {
 	vector<int> sa;
 	vector<int> lcp;
 	//string temp = "ATTAGCGAGCG$";
-	string temp = "banana$";
+	//string temp = "banana$";
 	//string temp = "cabacbbabacbbc$";
-	//string temp = "ABANANABANDANA$";
+	string temp = "ABANANABANDANA$";
+	//string temp = "atgacggatca$";
 	for (int i = 0; i < temp.length(); i++) {
 		sa.push_back(-1);
 		lcp.push_back(-1);
