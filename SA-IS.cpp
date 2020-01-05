@@ -4,6 +4,9 @@
 #include <map>
 #include <iterator>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -129,7 +132,7 @@ int find_lcp_value(int sa_index_first, int sa_index_second, vector<int>& sa) {
 }
 
 int rmq(int start, int end, vector<int>& lcp) {
-	
+
 	int minimum = lcp.size();
 	for (int i = start; i <= end; i++) {
 		if (lcp[i] == -1)
@@ -165,7 +168,7 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 		sa[sa_index] = index;
 		if (level == 2) {
 			lcp[sa_index] = 0;
-			lcp[sa_index + 1] = find_lcp_value(sa_index, sa_index+1, sa);
+			lcp[sa_index + 1] = find_lcp_value(sa_index, sa_index + 1, sa);
 		}
 		b[sa[index + offset]]--;
 	}
@@ -197,7 +200,7 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 					{
 						lcp[b[k] + 1] = find_lcp_value(b[k], b[k]+1, sa);
 					}*/
-					
+
 					if (sa[b[k] - 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] - 1] + offset]) {
 						lcp[b[k]] = 0;
 					}
@@ -226,6 +229,7 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 
 	move_bk_pointers_to_end(map, b);
 	//ne bi diral ls seam jer bi ovde trebalo ici po redu. ak se nekaj preskoci, ne bu napisano vise...
+	printf("zadnja for petlja\n");
 	for (int i = len - 1; i >= 0; i--) {
 		if (sa[i] > 0) {
 			if (t1[sa[i] - 1]) {
@@ -299,8 +303,8 @@ bool lms_substring_naming(int level, int len, vector<int>& sa, vector<bool>& t, 
 	}*/
 	int counter = 0;
 	for (int i = 0; i < len; i++) {
-		if(sa[i] > 0 && t[sa[i]] && !t[sa[i]-1]) {
-				sa[counter++] = sa[i];
+		if (sa[i] > 0 && t[sa[i]] && !t[sa[i] - 1]) {
+			sa[counter++] = sa[i];
 		}
 	}
 	//oslobodi drugu polovicu polja
@@ -331,10 +335,10 @@ bool lms_substring_naming(int level, int len, vector<int>& sa, vector<bool>& t, 
 			last_empty++;
 		}
 	}
-	
-		
 
-	
+
+
+
 	return unique;
 }
 
@@ -352,11 +356,13 @@ int sa_is(int level, int len, vector<int>& sa, vector<int>& lcp) {
 	vector<int> p1;
 	vector<int> b;
 	int offset = sa.size() / level;
+	printf("ulazim u classify\n");
 	classify_characters(level, len, sa, t);
+	printf("ulazim u find_lms \n");
 	find_lms_substrings(level, len, sa, t, p1);
-
+	printf("ulazim u induced_sord \n");
 	induced_sort_lms_substrings(level, len, sa, p1, t, lcp);
-
+	printf("ulazim u naming\n");
 	bool unique = lms_substring_naming(level, len, sa, t, p1);
 
 	if (unique) {
@@ -368,21 +374,29 @@ int sa_is(int level, int len, vector<int>& sa, vector<int>& lcp) {
 	}
 	else {
 		fill_sa(sa, offset / 2);
+		printf("ulazim u rekurziju\n");
 		sa_is(2 * level, p1.size(), sa, lcp);
 	}
+	printf("ulazim u induced_sort_top\n");
 	induced_sort_lms_substrings_top(level, len, sa, p1, t, lcp);
+	printf("izlazak\n");
 	return 0;
 }
 
 
 int main() {
+	std::ifstream inFile;
+	inFile.open("C:/Users/Marko/Desktop/Eccherichia_coli_no_spaces.txt"); //open the input file
+
+	std::stringstream strStream;
+	strStream << inFile.rdbuf(); //read the file
+
 	vector<int> sa;
 	vector<int> lcp;
 	//string temp = "ATTAGCGAGCG$";
-	//string temp = "banana$";
+	string temp = strStream.str();
 	//string temp = "cabacbbabacbbc$";
-	string temp = "ABANANABANDANA$";
-	//string temp = "atgacggatca$";
+	//string temp = "ABANANABANDANA$";
 	for (int i = 0; i < temp.length(); i++) {
 		sa.push_back(-1);
 		lcp.push_back(-1);
@@ -390,6 +404,7 @@ int main() {
 	for (int i = 0; i < temp.length(); i++) {
 		sa.push_back(temp[i]);
 	}
+	printf("Starting.\n");
 	sa_is(2, temp.length(), sa, lcp);
 	int g = 0;
 }
