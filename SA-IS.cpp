@@ -1,68 +1,81 @@
 ﻿#include <cstdio>
 #include <string>
-#include <vector>
-#include <map>
-#include <iterator>
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <chrono>
+#include <time.h>
 
 using namespace std;
-using namespace std::chrono;
 
-void classify_characters(int level, int len, vector<int>& sa, vector<bool>& t) {
-	int offset = sa.size() / level, counter = 0;
+int N = 0;
+
+void fill_array(int* array, int n, int number)
+{
+	for (int i = 0; i < n; i++) {
+		array[i] = number;
+	}
+}
+
+void isprintajPolje(int* polje, int n) {
+	int i = 0;
+	for (i; i < n; i++) {
+		printf("%d ", polje[i]);
+	}
+	printf("\n");
+}
+
+void classify_characters(int level, int len, int* sa, int* t) {
+	int offset = N / level;
 	for (int i = offset + len - 1; i >= offset; i--) {
 		if (i == offset + len - 1) {
-			t.push_back(true);
-			counter++;
+			t[i - offset] = 1;
 			continue;
 		}
-		if (sa[i] < sa[i + 1] || sa[i] == sa[i + 1] && t[counter - 1]) {
-			counter++;
-			t.push_back(true);
+		if (sa[i] < sa[i + 1] || sa[i] == sa[i + 1] && t[i - offset + 1]) {
+			t[i - offset] = 1;
+
 		}
 		else {
-			counter++;
-			t.push_back(false);
+			t[i - offset] = 0;
 		}
 	}
-
-	reverse(t.begin(), t.end());
 }
 
-void find_lms_substrings(int level, int len, vector<int>& sa, vector<bool>& t, vector<int>& p1) {
-	int offset = sa.size() / level;
 
+int find_lms_substrings(int level, int len, int* sa, int* t, int* p1) {
+	int offset = N / level;
+	int counter = 0;
 	for (int i = offset + 1; i < offset + len; i++) {
-		if ((t[i - offset] == true && t[i - 1 - offset] == false)) {
-			p1.push_back(i - offset);
+		if ((t[i - offset] && !t[i - 1 - offset])) {
+			p1[counter++] = i - offset;
+		}
+	}
+	return counter;
+}
+
+void move_bk_pointers_to_end(int* mapa, int* b, int num) {
+	int counter = 0;
+	for (int i = 0; i < num; i++) {
+		if (mapa[num] != 0) {
+			b[i] = counter + mapa[i] - 1;
+			counter += mapa[i];
 		}
 	}
 }
 
-void move_bk_pointers_to_end(map<int, int>& mapa, map<int, int>& b) {
+void move_bk_pointers_to_start(int* mapa, int* b, int num) {
 	int counter = 0;
-	for (auto const& x : mapa) {
-		b[x.first] = counter + x.second - 1;
-		counter += x.second;
+	for (int i = 0; i < num; i++) {
+		if (mapa[num] != 0) {
+			b[i] = counter;
+			counter += mapa[i];
+		}
 	}
 }
 
-void move_bk_pointers_to_start(map<int, int>& mapa, map<int, int>& b) {
-	int counter = 0;
-	for (auto const& x : mapa)
-	{
-		b[x.first] = counter;
-		counter += x.second;
-	}
-}
-
-void induced_sort_lms_substring_substep2(int level, int len, vector<int>& sa, vector<bool>& t, map<int, int>& b, vector<int>& lcp)
+void induced_sort_lms_substring_substep2(int level, int len, int* sa, int* t, int* b, int* lcp)
 {
-	int offset = sa.size() / level;
+	int offset = N / level;
 	for (int i = 0; i < len; i++) {
 		if (sa[i] > 0) {
 			if (!t[sa[i] - 1]) {
@@ -75,9 +88,9 @@ void induced_sort_lms_substring_substep2(int level, int len, vector<int>& sa, ve
 
 }
 
-void induced_sort_lms_substring_substep3(int level, int len, vector<int>& sa, vector<bool>& t, map<int, int>& b, vector<int>& lcp)
+void induced_sort_lms_substring_substep3(int level, int len, int* sa, int* t, int* b, int* lcp)
 {
-	int offset = sa.size() / level;
+	int offset = N / level;
 	for (int i = len - 1; i >= 0; i--) {
 		if (sa[i] > 0) {
 			if (t[sa[i] - 1]) {
@@ -90,10 +103,18 @@ void induced_sort_lms_substring_substep3(int level, int len, vector<int>& sa, ve
 
 }
 
-void induced_sort_lms_substrings(int level, int len, vector<int>& sa, vector<int>& p1, vector<bool>& t, vector<int>& lcp) {
-	map<int, int> b;
-	map<int, int> map;
-	int offset = sa.size() / level;
+void induced_sort_lms_substrings(int level, int len, int num_of_characters, int* sa, int* p1, int* t, int* lcp) {
+	int* map;
+	int* b;
+	if (level == 2) {
+		num_of_characters = 256;
+	}
+
+	map = (int*)malloc(num_of_characters * sizeof(int));
+	b = (int*)malloc(num_of_characters * sizeof(int));
+	fill_array(map, num_of_characters, 0);
+
+	int offset = N / level;
 	for (int i = offset; i < offset + len; i++) {
 		map[sa[i]]++;
 	}
@@ -102,7 +123,7 @@ void induced_sort_lms_substrings(int level, int len, vector<int>& sa, vector<int
 		sa[i] = -1;
 	}
 
-	move_bk_pointers_to_end(map, b);
+	move_bk_pointers_to_end(map, b, num_of_characters);
 
 	int counter = 0;
 	for (int i = offset; i < offset + len; i++) {
@@ -112,33 +133,33 @@ void induced_sort_lms_substrings(int level, int len, vector<int>& sa, vector<int
 			counter++;
 		}
 	}
-
-	move_bk_pointers_to_start(map, b);
+	move_bk_pointers_to_start(map, b, num_of_characters);
 	induced_sort_lms_substring_substep2(level, len, sa, t, b, lcp);
 
-	move_bk_pointers_to_end(map, b);
+	move_bk_pointers_to_end(map, b, num_of_characters);
 	induced_sort_lms_substring_substep3(level, len, sa, t, b, lcp);
-
+	free(map);
+	free(b);
 }
 
-int find_lcp_value(int sa_index_first, int sa_index_second, vector<int>& sa) {
+int find_lcp_value(int sa_index_first, int sa_index_second, int* sa) {
 	int first = sa[sa_index_first];
 	int second = sa[sa_index_second];
-	int offset = sa.size() / 2;
+	int offset = N / 2;
 	int counter = 0;
 	if (first == -1 || second == -1) {
 		return 0;
 	}
-	for (int i = 0; first + i + offset < sa.size() && second + i + offset < sa.size(); i++) {
+	for (int i = 0; first + i + offset < N && second + i + offset < N; i++) {
 		if (sa[first + i + offset] != sa[second + i + offset]) break;
 		counter++;
 	}
 	return counter;
 }
 
-int rmq(int start, int end, vector<int>& lcp) {
+int rmq(int start, int end, int* lcp) {
 
-	int minimum = lcp.size();
+	int minimum = N;
 	for (int i = start; i <= end; i++) {
 		if (lcp[i] == -1)
 			continue;
@@ -146,31 +167,35 @@ int rmq(int start, int end, vector<int>& lcp) {
 			minimum = lcp[i];
 		}
 	}
-	if (lcp.size() == minimum)
+	if (N == minimum)
 		return 0;
 	return minimum;
 }
 
-void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector<int>& p2, vector<bool>& t1, vector<int>& lcp) {
-	map<int, int> last_occ;
-	map<int, int> b;
-	map<int, int> map;
+void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, int* p2, int* t1, int* lcp, int num_of_characters) {
 	
+	int* last_occ;
+	int* map;
+	int* b;
+	
+	map = (int*)malloc(num_of_characters * sizeof(int));
+	b = (int*)malloc(num_of_characters * sizeof(int));
+	last_occ = (int*)malloc(num_of_characters * sizeof(int));
+	fill_array(map, num_of_characters, 0);
 
-	
-	int offset = sa.size() / level;
+	int offset = N / level;
 
 	for (int i = offset; i < offset + len; i++) {
 		map[sa[i]]++;
 	}
 
 
-	for (int i = p2.size(); i < offset; i++) {
+	for (int i = p2_size; i < offset; i++) {
 		sa[i] = -1;
 	}
-	move_bk_pointers_to_end(map, b);
+	move_bk_pointers_to_end(map, b, num_of_characters);
 
-	for (int i = p2.size() - 1; i >= 0; i--) {
+	for (int i = p2_size - 1; i >= 0; i--) {
 		int index = p2[sa[i]];
 		int sa_index = b[sa[index + offset]];
 		sa[i] = -1;
@@ -181,19 +206,24 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 		}
 		b[sa[index + offset]]--;
 	}
-
-	move_bk_pointers_to_start(map, b);
+	move_bk_pointers_to_start(map, b, num_of_characters);
 	int last = -1;
-	vector<int> min_stack;
-	min_stack.push_back(-1);
-	min_stack.push_back(-1);
+	//kopirano iz originalne implementacije
+	int stack_size = 2 * (1024 + num_of_characters + 4);
+	int* min_stack = (int*) malloc((stack_size + 4) * sizeof(int));
+	min_stack[0] = -1;
+	min_stack[1] = -1;
+	int stack_end = 1;
 	if (level == 2)
 	{
+		for (int i = 0; i < num_of_characters; i++) {
+			last_occ[i] = -1;
+		}
 		//napuniti last occ sa -1 za svaki znak.
-		for (auto const& x : b)
+		/*for (auto const& x : b)
 		{
 			last_occ[x.first] = -1;
-		}
+		}*/
 	}
 	for (int i = 0; i < len; i++) {
 		if (sa[i] > 0) {
@@ -212,7 +242,6 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 				int k = sa[offset + sa[i] - 1];
 				sa[b[k]] = sa[i] - 1;
 				if (level == 2) {
-					//std::printf("racunam L sufix");
 					//Potrebno napuniti
 					if (b[k] == 0) {
 						lcp[b[k]] = 0;
@@ -223,14 +252,11 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 					{
 						lcp[b[k] + 1] = find_lcp_value(b[k], b[k]+1, sa);
 					}*/
-					int stack_end = min_stack.size() - 1;
-					while (lcp_val <= min_stack[stack_end]) { 
-						stack_end -= 2; 
-						min_stack.pop_back(); 
-						min_stack.pop_back(); 
+					while (lcp_val <= min_stack[stack_end]) {
+						stack_end -= 2;
 					}; // pop from stack
-					min_stack.push_back(i);
-					min_stack.push_back(lcp_val);
+					min_stack[++stack_end] = i;
+					min_stack[++stack_end] = lcp_val;
 
 					if (sa[b[k] - 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] - 1] + offset]) {
 						lcp[b[k]] = 0;
@@ -252,12 +278,12 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 						else {
 							//printf("racunam RMQ");
 							int start = iteration + 1; // start of query
-							int end = min_stack.size() - 1 - 3;
+							int end = stack_end - 3;
 							while (start <= min_stack[end]) end -= 2; // search until smaller element found
-							            // store 0 at bucket beginnings
+										// store 0 at bucket beginnings
 							lcp[b[k]] = min_stack[end + 3] + 1;      // induce LCP-value!
 							last_occ[k] = i;
-						    //lcp[b[k]] = rmq(iteration + 1, i, lcp) + 1;
+							//lcp[b[k]] = rmq(iteration + 1, i, lcp) + 1;
 						}
 					}
 				}
@@ -267,31 +293,35 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 		else { // don't induce, but update stack with LCP[i]
 			int lcp_val = lcp[i];      // get current LCP-value
 			if (lcp_val >= 0) {    // check if already computed
-				int stack_end = min_stack.size() - 1;
 				while (lcp_val <= min_stack[stack_end]) {
 					stack_end -= 2;
-					min_stack.pop_back();
-					min_stack.pop_back();
 				}; // pop from stack
-				min_stack.push_back(i);
-				min_stack.push_back(lcp_val);
+				min_stack[++stack_end] = i;
+				min_stack[++stack_end] = lcp_val;
 			}
+		}
+		if (stack_end > stack_size) {
+			min_stack = (int*)realloc(min_stack, (stack_size * 2 + 4) * sizeof(int));
+			stack_size *= 2 + 2;
 		}
 	}
 
 
-	move_bk_pointers_to_end(map, b);
+	move_bk_pointers_to_end(map, b, num_of_characters);
 	//ne bi diral ls seam jer bi ovde trebalo ici po redu. ak se nekaj preskoci, ne bu napisano vise...
-	printf("zadnja for petlja\n");
-	min_stack.clear();
-	min_stack.push_back(offset); min_stack.push_back(-1);
+	//printf("zadnja for petlja\n");
+	stack_end = 1;
+	min_stack[0] = offset; min_stack[1] = -1;
 	if (level == 2)
 	{
 		//napuniti last occ sa -1 za svaki znak.
-		for (auto const& x : b)
-		{
-			last_occ[x.first] = offset-1;
+		for (int i = 0; i < num_of_characters; i++) {
+			last_occ[i] = offset - 1;
 		}
+		/*for (auto const& x : b)
+		{
+			last_occ[x.first] = offset - 1;
+		}*/
 	}
 	for (int i = len - 1; i >= 0; i--) {
 		if (sa[i] > 0) {
@@ -300,13 +330,13 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 				sa[b[k]] = sa[i] - 1;
 				if (level == 2) {
 					//printf("racunam S sufix");
-					if (b[k] + 1 == sa.size()) {
+					if (b[k] + 1 == N) {
 						last_occ[k] = i;
 						//ovo treba razmotriti
 					}
 					else if (sa[b[k] + 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] + 1] + offset]) {
 						//L/S seam
-						if (b[k] - 1 > 0 && sa[sa[b[k]] + offset] == sa[sa[b[k] - 1] + offset] && t1[sa[b[k] - 1]] == false)
+						if (b[k] - 1 > 0 && sa[sa[b[k]] + offset] == sa[sa[b[k] - 1] + offset] && !t1[sa[b[k] - 1]])
 						{
 							lcp[b[k]] = find_lcp_value(b[k] - 1, b[k], sa);
 						}
@@ -315,7 +345,7 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 					}
 					else {
 						//L/S seam
-						if (b[k] - 1 > 0 && sa[sa[b[k]] + offset] == sa[sa[b[k] - 1] + offset] && t1[sa[b[k] - 1]] == false)
+						if (b[k] - 1 > 0 && sa[sa[b[k]] + offset] == sa[sa[b[k] - 1] + offset] && !t1[sa[b[k] - 1]])
 						{
 							lcp[b[k]] = find_lcp_value(b[k] - 1, b[k], sa);
 						}
@@ -334,39 +364,40 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 						}
 						else {
 							int start = iteration;     // end of query
-							int end = min_stack.size() -1 - 1;
+							int end = stack_end - 1;
 							while (start >= min_stack[end]) end -= 2; // search until smaller element found
 							lcp[b[k] + 1] = min_stack[end + 3] + 1;    // induce LCP-value!
-							
+
 							last_occ[k] = i;
 							//lcp[b[k] + 1] = rmq(i + 1, iteration, lcp) + 1;
 						}
 					}
 					// update MinStack:
-					int lcp_val = lcp[i], stack_end = min_stack.size() - 1;
+					int lcp_val = lcp[i];
 					while (lcp_val <= min_stack[stack_end]) {
 						stack_end -= 2;
-						min_stack.pop_back();
-						min_stack.pop_back();
 					}// pop from stack
-					min_stack.push_back(i);
-					min_stack.push_back(lcp_val);
-					
+					min_stack[++stack_end] = i;
+					min_stack[++stack_end] = lcp_val;
+
 				}
 				b[k]--;
 			}
 		}
 	}
-
+	free(min_stack);
+	free(map);
+	free(b);
+	free(last_occ);
 }
 
 
-bool compare(int level, vector<int>& sa, vector<bool>& t, int last, int index) {
+bool compare(int level, int* sa, int* t, int last, int index) {
 	if (last == -1)
 		return false;
 	bool same = true;
-	int offset = sa.size() / level;
-	for (int i = last, j = index; i < sa.size() / (level / 2) && j < sa.size() / (level / 2);) {
+	int offset = N / level;
+	for (int i = last, j = index; i < N / (level / 2) && j < N / (level / 2);) {
 		if (sa[i + offset] != sa[j + offset] || t[i] != t[j]) {
 			same = false;
 			break;
@@ -379,8 +410,8 @@ bool compare(int level, vector<int>& sa, vector<bool>& t, int last, int index) {
 	return same;
 }
 
-bool lms_substring_naming(int level, int len, vector<int>& sa, vector<bool>& t, vector<int>& p1) {
-	int offset = sa.size() / level;
+pair<bool, int> lms_substring_naming(int level, int len, int p1_size, int* sa, int* t, int* p1) {
+	int offset = N / level;
 	int last = -1;
 	/*for (int i = 0; i < p1.size(); i++) {
 		s1.push_back(-1);
@@ -396,7 +427,7 @@ bool lms_substring_naming(int level, int len, vector<int>& sa, vector<bool>& t, 
 		sa[i] = -1;
 	bool unique = true;
 	int name_counter = 0;
-	for (int i = 0; i < p1.size(); i++) {
+	for (int i = 0; i < p1_size; i++) {
 		int index = sa[i];
 		if (index > 0 && t[index] && !t[index - 1]) {
 			if (compare(level, sa, t, last, index)) {
@@ -420,95 +451,90 @@ bool lms_substring_naming(int level, int len, vector<int>& sa, vector<bool>& t, 
 		}
 	}
 
-
-
-
-	return unique;
+	return make_pair(unique, name_counter);
 }
 
-void fill_sa(vector<int>& sa, int n)
-{
-	for (int i = 0; i < n; i++) {
-		sa[i] = -1;
-	}
-}
 
-int sa_is(int level, int len, vector<int>& sa, vector<int>& lcp) {
-	int n = sa.size();
-	vector<bool> t;
-	vector<int> s1;
-	vector<int> p1;
-	vector<int> b;
-	int offset = sa.size() / level;
-	printf("ulazim u classify\n");
+
+int sa_is(int level, int len, int* sa, int* lcp, int num_of_characters) {
+	int* t;
+	int* p1;
+
+	t = (int*)malloc(N * sizeof(int) * 2);
+	p1 = (int*)malloc((len / 2) * sizeof(int));
+
+	int offset = N / level;
 	classify_characters(level, len, sa, t);
-	printf("ulazim u find_lms \n");
-	find_lms_substrings(level, len, sa, t, p1);
-	printf("ulazim u induced_sord \n");
-	induced_sort_lms_substrings(level, len, sa, p1, t, lcp);
-	printf("ulazim u naming\n");
-	bool unique = lms_substring_naming(level, len, sa, t, p1);
+	int p1_size = find_lms_substrings(level, len, sa, t, p1);
+	induced_sort_lms_substrings(level, len, num_of_characters, sa, p1, t, lcp);
+	pair<bool, int> unique = lms_substring_naming(level, len, p1_size, sa, t, p1);
 
-	if (unique) {
+	if (unique.first) {
 		//fill_sa(sa1, s1.size());
-		for (int i = 0; i < p1.size(); i++) {
+		for (int i = 0; i < p1_size; i++) {
 			sa[sa[i + offset / 2]] = i;
 		}
 
 	}
 	else {
-		fill_sa(sa, offset / 2);
-		printf("ulazim u rekurziju\n");
-		sa_is(2 * level, p1.size(), sa, lcp);
+		fill_array(sa, offset / 2, -1);
+		sa_is(2 * level, p1_size, sa, lcp, unique.second);
 	}
-	printf("ulazim u induced_sort_top\n");
-	induced_sort_lms_substrings_top(level, len, sa, p1, t, lcp);
-	printf("izlazak\n");
+	induced_sort_lms_substrings_top(level, len, p1_size, sa, p1, t, lcp, num_of_characters);
+	free(t);
+	free(p1);
 	return 0;
 }
 
 
 int main() {
-	auto start = high_resolution_clock::now();
+	
 
 	std::ifstream inFile;
-	inFile.open("C:/nn/Eccherichia_coli_no_spaces.txt"); //open the input file
+	inFile.open("C:/Users/Marko/Desktop/Eccherichia_coli_no_spaces.txt"); //open the input file
 
 	std::stringstream strStream;
 	strStream << inFile.rdbuf(); //read the file
 
-	vector<int> sa;
-	vector<int> lcp;
-	string temp = "ATTAGCGAGCG$";
-	//string temp = strStream.str();
+	//string temp = "ATTAGCGAGCG$";
+	string temp = strStream.str();
 	//string temp = "cabacbbabacbbc$";
 	//string temp = "ABANANABANDANA$";
 	//string temp = "banana$";
-	for (int i = 0; i < temp.length(); i++) {
-		sa.push_back(-1);
-		lcp.push_back(-1);
+	int n = temp.length();
+	N = temp.length() * 2;
+	int* sa = (int*)malloc(n * sizeof(int) * 2);
+	int* lcp = (int*)malloc(n * sizeof(int));
+	for (int i = 0; i < n; i++) {
+		sa[i] = -1;
+		lcp[i] = -1;
+		//sa.push_back(-1);
+		//lcp.push_back(-1);
 	}
-	for (int i = 0; i < temp.length(); i++) {
-		sa.push_back(temp[i]);
+	for (int i = 0; i < n; i++) {
+		sa[i + n] = temp[i];
+		//sa.push_back(temp[i]);
 	}
-	printf("Starting.\n");
-	sa_is(2, temp.length(), sa, lcp);
 
+	printf("Starting.\n");
+	clock_t start = clock();
+	sa_is(2, temp.length(), sa, lcp, 256);
+	//isprintajPolje(sa, N);
+	//isprintajPolje(lcp, n);
+	clock_t finish = clock();
+	cout << "Duration time: " << (double)(finish - start) / (double)CLOCKS_PER_SEC;
 	ofstream saFile, lcpFile;
 	saFile.open("C:/nn/sa.txt");
 	lcpFile.open("C:/nn/lcp.txt");
-	for (int i = 0; i < sa.size() / 2; i++)
+	for (int i = 0; i < N / 2; i++)
 	{
-		saFile <<  sa[i] << '\n';
+		saFile << sa[i] << '\n';
 		lcpFile << lcp[i] << '\n';
 	}
 	saFile.close();
 	lcpFile.close();
 
-	auto stop = high_resolution_clock::now();
-	auto duration = duration_cast<seconds>(stop - start);
-	
-	cout <<"Duration time: " <<duration.count() << endl;
-
+	free(sa);
+	free(lcp);
 	int g = 0;
 }
