@@ -7,20 +7,25 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 void classify_characters(int level, int len, vector<int>& sa, vector<bool>& t) {
-	int offset = sa.size() / level;
+	int offset = sa.size() / level, counter = 0;
 	for (int i = offset + len - 1; i >= offset; i--) {
 		if (i == offset + len - 1) {
 			t.push_back(true);
+			counter++;
 			continue;
 		}
-		if (sa[i] < sa[i + 1] || sa[i] == sa[i + 1] && t[t.size() - 1]) {
+		if (sa[i] < sa[i + 1] || sa[i] == sa[i + 1] && t[counter - 1]) {
+			counter++;
 			t.push_back(true);
 		}
 		else {
+			counter++;
 			t.push_back(false);
 		}
 	}
@@ -147,8 +152,12 @@ int rmq(int start, int end, vector<int>& lcp) {
 }
 
 void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector<int>& p2, vector<bool>& t1, vector<int>& lcp) {
+	map<int, int> last_occ;
 	map<int, int> b;
 	map<int, int> map;
+	
+
+	
 	int offset = sa.size() / level;
 
 	for (int i = offset; i < offset + len; i++) {
@@ -175,6 +184,17 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 
 	move_bk_pointers_to_start(map, b);
 	int last = -1;
+	vector<int> min_stack;
+	min_stack.push_back(-1);
+	min_stack.push_back(-1);
+	if (level == 2)
+	{
+		//napuniti last occ sa -1 za svaki znak.
+		for (auto const& x : b)
+		{
+			last_occ[x.first] = -1;
+		}
+	}
 	for (int i = 0; i < len; i++) {
 		if (sa[i] > 0) {
 
@@ -186,11 +206,14 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 			else if (level == 2 && !t1[sa[i]]) {
 				last = i;
 			}
+			int lcp_val = lcp[i];
 
 			if (!t1[sa[i] - 1]) {
 				int k = sa[offset + sa[i] - 1];
 				sa[b[k]] = sa[i] - 1;
 				if (level == 2) {
+					//std::printf("racunam L sufix");
+					//Potrebno napuniti
 					if (b[k] == 0) {
 						lcp[b[k]] = 0;
 						continue;
@@ -200,28 +223,58 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 					{
 						lcp[b[k] + 1] = find_lcp_value(b[k], b[k]+1, sa);
 					}*/
+					int stack_end = min_stack.size() - 1;
+					while (lcp_val <= min_stack[stack_end]) { 
+						stack_end -= 2; 
+						min_stack.pop_back(); 
+						min_stack.pop_back(); 
+					}; // pop from stack
+					min_stack.push_back(i);
+					min_stack.push_back(lcp_val);
 
 					if (sa[b[k] - 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] - 1] + offset]) {
 						lcp[b[k]] = 0;
+						last_occ[k] = i;
 					}
 					else {
-						int iteration = 0;
-						for (int j = 0; j < i; j++) {
+						int iteration = last_occ[k];
+						/*for (int j = 0; j < i; j++) {
 							if (sa[j] == sa[b[k] - 1] + 1) {
 								iteration = j;
 								break;
 							}
-						}
+						}*/
 
 						if (sa[offset + sa[iteration]] != sa[offset + sa[i]]) {
 							lcp[b[k]] = 1;
+							last_occ[k] = i;
 						}
 						else {
-							lcp[b[k]] = rmq(iteration + 1, i, lcp) + 1;
+							//printf("racunam RMQ");
+							int start = iteration + 1; // start of query
+							int end = min_stack.size() - 1 - 3;
+							while (start <= min_stack[end]) end -= 2; // search until smaller element found
+							            // store 0 at bucket beginnings
+							lcp[b[k]] = min_stack[end + 3] + 1;      // induce LCP-value!
+							last_occ[k] = i;
+						    //lcp[b[k]] = rmq(iteration + 1, i, lcp) + 1;
 						}
 					}
 				}
 				b[k]++;
+			}
+		}
+		else { // don't induce, but update stack with LCP[i]
+			int lcp_val = lcp[i];      // get current LCP-value
+			if (lcp_val >= 0) {    // check if already computed
+				int stack_end = min_stack.size() - 1;
+				while (lcp_val <= min_stack[stack_end]) {
+					stack_end -= 2;
+					min_stack.pop_back();
+					min_stack.pop_back();
+				}; // pop from stack
+				min_stack.push_back(i);
+				min_stack.push_back(lcp_val);
 			}
 		}
 	}
@@ -230,14 +283,26 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 	move_bk_pointers_to_end(map, b);
 	//ne bi diral ls seam jer bi ovde trebalo ici po redu. ak se nekaj preskoci, ne bu napisano vise...
 	printf("zadnja for petlja\n");
+	min_stack.clear();
+	min_stack.push_back(offset); min_stack.push_back(-1);
+	if (level == 2)
+	{
+		//napuniti last occ sa -1 za svaki znak.
+		for (auto const& x : b)
+		{
+			last_occ[x.first] = offset-1;
+		}
+	}
 	for (int i = len - 1; i >= 0; i--) {
 		if (sa[i] > 0) {
 			if (t1[sa[i] - 1]) {
 				int k = sa[sa[i] - 1 + offset];
 				sa[b[k]] = sa[i] - 1;
 				if (level == 2) {
+					//printf("racunam S sufix");
 					if (b[k] + 1 == sa.size()) {
-
+						last_occ[k] = i;
+						//ovo treba razmotriti
 					}
 					else if (sa[b[k] + 1] == -1 || sa[sa[b[k]] + offset] != sa[sa[b[k] + 1] + offset]) {
 						//L/S seam
@@ -245,6 +310,8 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 						{
 							lcp[b[k]] = find_lcp_value(b[k] - 1, b[k], sa);
 						}
+						last_occ[k] = i;
+
 					}
 					else {
 						//L/S seam
@@ -253,21 +320,38 @@ void induced_sort_lms_substrings_top(int level, int len, vector<int>& sa, vector
 							lcp[b[k]] = find_lcp_value(b[k] - 1, b[k], sa);
 						}
 
-						int iteration = 0;
-						for (int j = len - 1; j > i; j--) {
+						int iteration = last_occ[k];
+						/*for (int j = len - 1; j > i; j--) {
 							if (sa[j] == sa[b[k] + 1] + 1) {
 								iteration = j;
 								break;
 							}
-						}
+						}*/
 
 						if (sa[offset + sa[iteration]] != sa[offset + sa[i]]) {
 							lcp[b[k] + 1] = 1;
+							last_occ[k] = i;
 						}
 						else {
-							lcp[b[k] + 1] = rmq(i + 1, iteration, lcp) + 1;
+							int start = iteration;     // end of query
+							int end = min_stack.size() -1 - 1;
+							while (start >= min_stack[end]) end -= 2; // search until smaller element found
+							lcp[b[k] + 1] = min_stack[end + 3] + 1;    // induce LCP-value!
+							
+							last_occ[k] = i;
+							//lcp[b[k] + 1] = rmq(i + 1, iteration, lcp) + 1;
 						}
 					}
+					// update MinStack:
+					int lcp_val = lcp[i], stack_end = min_stack.size() - 1;
+					while (lcp_val <= min_stack[stack_end]) {
+						stack_end -= 2;
+						min_stack.pop_back();
+						min_stack.pop_back();
+					}// pop from stack
+					min_stack.push_back(i);
+					min_stack.push_back(lcp_val);
+					
 				}
 				b[k]--;
 			}
@@ -385,18 +469,21 @@ int sa_is(int level, int len, vector<int>& sa, vector<int>& lcp) {
 
 
 int main() {
+	auto start = high_resolution_clock::now();
+
 	std::ifstream inFile;
-	inFile.open("C:/Users/Marko/Desktop/Eccherichia_coli_no_spaces.txt"); //open the input file
+	inFile.open("C:/nn/Eccherichia_coli_no_spaces.txt"); //open the input file
 
 	std::stringstream strStream;
 	strStream << inFile.rdbuf(); //read the file
 
 	vector<int> sa;
 	vector<int> lcp;
-	//string temp = "ATTAGCGAGCG$";
-	string temp = strStream.str();
+	string temp = "ATTAGCGAGCG$";
+	//string temp = strStream.str();
 	//string temp = "cabacbbabacbbc$";
 	//string temp = "ABANANABANDANA$";
+	//string temp = "banana$";
 	for (int i = 0; i < temp.length(); i++) {
 		sa.push_back(-1);
 		lcp.push_back(-1);
@@ -406,5 +493,22 @@ int main() {
 	}
 	printf("Starting.\n");
 	sa_is(2, temp.length(), sa, lcp);
+
+	ofstream saFile, lcpFile;
+	saFile.open("C:/nn/sa.txt");
+	lcpFile.open("C:/nn/lcp.txt");
+	for (int i = 0; i < sa.size() / 2; i++)
+	{
+		saFile <<  sa[i] << '\n';
+		lcpFile << lcp[i] << '\n';
+	}
+	saFile.close();
+	lcpFile.close();
+
+	auto stop = high_resolution_clock::now();
+	auto duration = duration_cast<seconds>(stop - start);
+	
+	cout <<"Duration time: " <<duration.count() << endl;
+
 	int g = 0;
 }
