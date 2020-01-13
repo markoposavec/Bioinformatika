@@ -126,6 +126,7 @@ void induced_sort_lms_substrings(int level, int len, int num_of_characters, int*
 	move_bk_pointers_to_end(map, b, num_of_characters);
 
 	int counter = 0;
+
 	for (int i = offset; i < offset + len; i++) {
 		if (p1[counter] == i - offset) {
 			sa[b[sa[i]]] = i - offset;
@@ -173,11 +174,11 @@ int rmq(int start, int end, int* lcp) {
 }
 
 void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, int* p2, int* t1, int* lcp, int num_of_characters) {
-	
+
 	int* last_occ;
 	int* map;
 	int* b;
-	
+
 	map = (int*)malloc(num_of_characters * sizeof(int));
 	b = (int*)malloc(num_of_characters * sizeof(int));
 	last_occ = (int*)malloc(num_of_characters * sizeof(int));
@@ -210,7 +211,7 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 	int last = -1;
 	//kopirano iz originalne implementacije
 	int stack_size = 2 * (1024 + num_of_characters + 4);
-	int* min_stack = (int*) malloc((stack_size + 4) * sizeof(int));
+	int* min_stack = (int*)malloc((stack_size + 4) * sizeof(int));
 	min_stack[0] = -1;
 	min_stack[1] = -1;
 	int stack_end = 1;
@@ -242,6 +243,7 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 				int k = sa[offset + sa[i] - 1];
 				sa[b[k]] = sa[i] - 1;
 				if (level == 2) {
+					
 					//Potrebno napuniti
 					if (b[k] == 0) {
 						lcp[b[k]] = 0;
@@ -277,6 +279,8 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 						}
 						else {
 							//printf("racunam RMQ");
+							if (sa[i] == 44) { 
+								int h = 0; }
 							int start = iteration + 1; // start of query
 							int end = stack_end - 3;
 							while (start <= min_stack[end]) end -= 2; // search until smaller element found
@@ -290,23 +294,25 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 				b[k]++;
 			}
 		}
-		else { // don't induce, but update stack with LCP[i]
-			int lcp_val = lcp[i];      // get current LCP-value
-			if (lcp_val >= 0) {    // check if already computed
-				while (lcp_val <= min_stack[stack_end]) {
-					stack_end -= 2;
-				}; // pop from stack
-				min_stack[++stack_end] = i;
-				min_stack[++stack_end] = lcp_val;
-			}
+		// don't induce, but update stack with LCP[i]
+		int lcp_val = lcp[i];      // get current LCP-value
+		if (lcp_val >= 0) {    // check if already computed
+			while (lcp_val <= min_stack[stack_end]) {
+				stack_end -= 2;
+			}; // pop from stack
+			min_stack[++stack_end] = i;
+			min_stack[++stack_end] = lcp_val;
+			
 		}
+		
+		
+
 		if (stack_end > stack_size) {
 			min_stack = (int*)realloc(min_stack, (stack_size * 2 + 4) * sizeof(int));
 			stack_size *= 2 + 2;
 		}
 	}
-
-
+	
 	move_bk_pointers_to_end(map, b, num_of_characters);
 	//ne bi diral ls seam jer bi ovde trebalo ici po redu. ak se nekaj preskoci, ne bu napisano vise...
 	//printf("zadnja for petlja\n");
@@ -326,6 +332,7 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 	for (int i = len - 1; i >= 0; i--) {
 		if (sa[i] > 0) {
 			if (t1[sa[i] - 1]) {
+			
 				int k = sa[sa[i] - 1 + offset];
 				sa[b[k]] = sa[i] - 1;
 				if (level == 2) {
@@ -372,17 +379,19 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 							//lcp[b[k] + 1] = rmq(i + 1, iteration, lcp) + 1;
 						}
 					}
-					// update MinStack:
-					int lcp_val = lcp[i];
-					while (lcp_val <= min_stack[stack_end]) {
-						stack_end -= 2;
-					}// pop from stack
-					min_stack[++stack_end] = i;
-					min_stack[++stack_end] = lcp_val;
+					
 
 				}
+
 				b[k]--;
 			}
+			// update MinStack:
+			int lcp_val = lcp[i];
+			while (lcp_val <= min_stack[stack_end]) {
+				stack_end -= 2;
+			}// pop from stack
+			min_stack[++stack_end] = i;
+			min_stack[++stack_end] = lcp_val;
 		}
 	}
 	free(min_stack);
@@ -397,12 +406,14 @@ bool compare(int level, int* sa, int* t, int last, int index) {
 		return false;
 	bool same = true;
 	int offset = N / level;
-	for (int i = last, j = index; i < N / (level / 2) && j < N / (level / 2);) {
+	int new_size = N / (level / 2);
+	for (int i = last, j = index; i < new_size && j < new_size;) {
 		if (sa[i + offset] != sa[j + offset] || t[i] != t[j]) {
 			same = false;
 			break;
 		}
-		if (t[i] == t[j] && t[i] && i != last) break;
+		//ako je neki od trenutnih znakova LMS prekidamo
+		if (i != last && ((i > 0 && t[i] && !t[i-1]) || (j > 0 && t[j] && !t[j-1]))) break;
 
 		i++;
 		j++;
@@ -460,7 +471,7 @@ int sa_is(int level, int len, int* sa, int* lcp, int num_of_characters) {
 	int* t;
 	int* p1;
 
-	t = (int*)malloc(N * sizeof(int) * 2);
+	t = (int*)malloc((N /level) * sizeof(int));
 	p1 = (int*)malloc((len / 2) * sizeof(int));
 
 	int offset = N / level;
@@ -488,11 +499,11 @@ int sa_is(int level, int len, int* sa, int* lcp, int num_of_characters) {
 
 
 int main() {
-	
+
 
 	std::ifstream inFile;
-	inFile.open("C:/Users/Marko/Desktop/Eccherichia_coli_no_spaces.txt"); //open the input file
-
+	inFile.open("C:/nn/Eccherichia_coli_no_spaces.txt"); //open the input file
+	//inFile.open("C:/nn/file.exe");
 	std::stringstream strStream;
 	strStream << inFile.rdbuf(); //read the file
 
@@ -519,8 +530,7 @@ int main() {
 	printf("Starting.\n");
 	clock_t start = clock();
 	sa_is(2, temp.length(), sa, lcp, 256);
-	//isprintajPolje(sa, N);
-	//isprintajPolje(lcp, n);
+
 	clock_t finish = clock();
 	cout << "Duration time: " << (double)(finish - start) / (double)CLOCKS_PER_SEC;
 	ofstream saFile, lcpFile;
