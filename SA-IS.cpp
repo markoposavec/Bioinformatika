@@ -6,7 +6,6 @@
 #include <time.h>
 #include<Windows.h>
 #include <Psapi.h> 
-#include<boost/dynamic_bitset>
 using namespace std;
 
 int N = 0;
@@ -41,7 +40,7 @@ void isprintajPolje(int* polje, int n) {
 	printf("\n");
 }
 
-void classify_characters(int level, int len, int* sa, int* t) {
+void classify_characters(int level, int len, int* sa, char* t) {
 	int offset = N / level;
 	for (int i = offset + len - 1; i >= offset; i--) {
 		if (i == offset + len - 1) {
@@ -59,7 +58,7 @@ void classify_characters(int level, int len, int* sa, int* t) {
 }
 
 
-int find_lms_substrings(int level, int len, int* sa, int* t, int* p1) {
+int find_lms_substrings(int level, int len, int* sa, char* t, int* p1) {
 	int offset = N / level;
 	int counter = 0;
 	for (int i = offset + 1; i < offset + len; i++) {
@@ -90,7 +89,7 @@ void move_bk_pointers_to_start(int* mapa, int* b, int num) {
 	}
 }
 
-void induced_sort_lms_substring_substep2(int level, int len, int* sa, int* t, int* b, int* lcp)
+void induced_sort_lms_substring_substep2(int level, int len, int* sa, char* t, int* b, int* lcp)
 {
 	int offset = N / level;
 	for (int i = 0; i < len; i++) {
@@ -105,7 +104,7 @@ void induced_sort_lms_substring_substep2(int level, int len, int* sa, int* t, in
 
 }
 
-void induced_sort_lms_substring_substep3(int level, int len, int* sa, int* t, int* b, int* lcp)
+void induced_sort_lms_substring_substep3(int level, int len, int* sa, char* t, int* b, int* lcp)
 {
 	int offset = N / level;
 	for (int i = len - 1; i >= 0; i--) {
@@ -120,7 +119,7 @@ void induced_sort_lms_substring_substep3(int level, int len, int* sa, int* t, in
 
 }
 
-void induced_sort_lms_substrings(int level, int len, int num_of_characters, int* sa, int* p1, int* t, int* lcp) {
+void induced_sort_lms_substrings(int level, int len, int num_of_characters, int* sa, int* p1, char* t, int* lcp) {
 	int* map;
 	int* b;
 	if (level == 2) {
@@ -190,7 +189,7 @@ int rmq(int start, int end, int* lcp) {
 	return minimum;
 }
 
-void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, int* p2, int* t1, int* lcp, int num_of_characters) {
+void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, int* p2, char* t1, int* lcp, int num_of_characters) {
 
 	int* last_occ;
 	int* map;
@@ -418,7 +417,7 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 }
 
 
-bool compare(int level, int* sa, int* t, int last, int index) {
+bool compare(int level, int* sa, char* t, int last, int index) {
 	if (last == -1)
 		return false;
 	bool same = true;
@@ -438,7 +437,7 @@ bool compare(int level, int* sa, int* t, int last, int index) {
 	return same;
 }
 
-pair<bool, int> lms_substring_naming(int level, int len, int p1_size, int* sa, int* t, int* p1) {
+pair<bool, int> lms_substring_naming(int level, int len, int p1_size, int* sa, char* t, int* p1) {
 	int offset = N / level;
 	int last = -1;
 	/*for (int i = 0; i < p1.size(); i++) {
@@ -484,13 +483,7 @@ pair<bool, int> lms_substring_naming(int level, int len, int p1_size, int* sa, i
 
 
 
-int sa_is(int level, int len, int* sa, int* lcp, int num_of_characters) {
-	int* t;
-	int* p1;
-
-	t = (int*)malloc((N /level) * sizeof(int));
-	p1 = (int*)malloc((len / 2) * sizeof(int));
-
+int sa_is(int level, int len, int* sa, int* lcp, int num_of_characters, char* t, int *p1) {
 	int offset = N / level;
 	classify_characters(level, len, sa, t);
 	int p1_size = find_lms_substrings(level, len, sa, t, p1);
@@ -506,19 +499,22 @@ int sa_is(int level, int len, int* sa, int* lcp, int num_of_characters) {
 	}
 	else {
 		fill_array(sa, offset / 2, -1);
-		sa_is(2 * level, p1_size, sa, lcp, unique.second);
+		sa_is(2 * level, p1_size, sa, lcp, unique.second, t, p1);
 	}
+	classify_characters(level, len, sa, t);
+	p1_size = find_lms_substrings(level, len, sa, t, p1);
+
 	induced_sort_lms_substrings_top(level, len, p1_size, sa, p1, t, lcp, num_of_characters);
-	free(t);
-	free(p1);
+
 	return 0;
 }
 
 
 int main(int argc, const char *argv[]) {
-	
+
+
 	std::ifstream inFile;
-	inFile.open("C:/nn/Eccherichia_coli_no_spaces.txt"); //open the input file
+	inFile.open(argv[1]); //open the input file
 	//inFile.open("C:/nn/file.exe");
 	std::stringstream strStream;
 	strStream << inFile.rdbuf(); //read the file
@@ -530,8 +526,13 @@ int main(int argc, const char *argv[]) {
 	//string temp = "banana$";
 	int n = temp.length();
 	N = temp.length() * 2;
+
 	int* sa = (int*)malloc(n * sizeof(int) * 2);
 	int* lcp = (int*)malloc(n * sizeof(int));
+	char* t = (char*)malloc(n * sizeof(char));
+	int* p1 = (int*)malloc(n/2 * sizeof(int));
+	
+	
 
 	for (int i = 0; i < n; i++) {
 		sa[i] = -1;
@@ -544,19 +545,16 @@ int main(int argc, const char *argv[]) {
 		//sa.push_back(temp[i]);
 	}
 	
-	print_memory_usage();
-
 	printf("Starting.\n");
 	clock_t start = clock();
-	sa_is(2, temp.length(), sa, lcp, 256);
-
+	sa_is(2, temp.length(), sa, lcp, 256, t, p1);
 	clock_t finish = clock();
-	cout << "Duration time: " << (double)(finish - start) / (double)CLOCKS_PER_SEC;
+	cout << "Duration time: " << (double)(finish - start) / (double)CLOCKS_PER_SEC << endl;
 	print_memory_usage();
 	FILE* sa_file;
 	FILE* lcp_file;
-	fopen_s(&sa_file, "C:/nn/saN.txt", "w+");
-	fopen_s(&lcp_file, "C:/nn/lcpN.txt", "w+");
+	fopen_s(&sa_file, "C:/nn/sa.txt", "w+");
+	fopen_s(&lcp_file, "C:/nn/lcp.txt", "w+");
 	for (int i = 0; i < n; i++) {
 		fprintf(sa_file, "%d\n", sa[i]);
 	}
@@ -580,5 +578,7 @@ int main(int argc, const char *argv[]) {
 	*/
 	free(sa);
 	free(lcp);
+	//free(t);
+	free(p1);
 	int g = 0;
 }
