@@ -4,7 +4,9 @@
 #include <iostream>
 #include <sstream>
 #include <time.h>
-
+#include<Windows.h>
+#include <Psapi.h> 
+#include<boost/dynamic_bitset>
 using namespace std;
 
 int N = 0;
@@ -14,6 +16,21 @@ void fill_array(int* array, int n, int number)
 	for (int i = 0; i < n; i++) {
 		array[i] = number;
 	}
+}
+void print_memory_usage()
+{
+	//get the handle to this process
+	auto myHandle = GetCurrentProcess();
+	//to fill in the process' memory usage details
+	PROCESS_MEMORY_COUNTERS pmc;
+	//return the usage (bytes), if I may
+	if (GetProcessMemoryInfo(myHandle, &pmc, sizeof(pmc)))
+	{
+		auto size = pmc.PeakWorkingSetSize;
+		cout <<"Peak set:" << size << endl;
+	}
+	else
+		return;
 }
 
 void isprintajPolje(int* polje, int n) {
@@ -210,7 +227,7 @@ void induced_sort_lms_substrings_top(int level, int len, int p2_size, int* sa, i
 	move_bk_pointers_to_start(map, b, num_of_characters);
 	int last = -1;
 	//kopirano iz originalne implementacije
-	int stack_size = 2 * (1024 + num_of_characters + 4);
+	int stack_size = 2 * (512 + num_of_characters + 4);
 	int* min_stack = (int*)malloc((stack_size + 4) * sizeof(int));
 	min_stack[0] = -1;
 	min_stack[1] = -1;
@@ -498,15 +515,14 @@ int sa_is(int level, int len, int* sa, int* lcp, int num_of_characters) {
 }
 
 
-int main() {
-
-
+int main(int argc, const char *argv[]) {
+	
 	std::ifstream inFile;
 	inFile.open("C:/nn/Eccherichia_coli_no_spaces.txt"); //open the input file
 	//inFile.open("C:/nn/file.exe");
 	std::stringstream strStream;
 	strStream << inFile.rdbuf(); //read the file
-
+	inFile.close();
 	//string temp = "ATTAGCGAGCG$";
 	string temp = strStream.str();
 	//string temp = "cabacbbabacbbc$";
@@ -516,6 +532,7 @@ int main() {
 	N = temp.length() * 2;
 	int* sa = (int*)malloc(n * sizeof(int) * 2);
 	int* lcp = (int*)malloc(n * sizeof(int));
+
 	for (int i = 0; i < n; i++) {
 		sa[i] = -1;
 		lcp[i] = -1;
@@ -526,6 +543,8 @@ int main() {
 		sa[i + n] = temp[i];
 		//sa.push_back(temp[i]);
 	}
+	
+	print_memory_usage();
 
 	printf("Starting.\n");
 	clock_t start = clock();
@@ -533,7 +552,22 @@ int main() {
 
 	clock_t finish = clock();
 	cout << "Duration time: " << (double)(finish - start) / (double)CLOCKS_PER_SEC;
-	ofstream saFile, lcpFile;
+	print_memory_usage();
+	FILE* sa_file;
+	FILE* lcp_file;
+	fopen_s(&sa_file, "C:/nn/saN.txt", "w+");
+	fopen_s(&lcp_file, "C:/nn/lcpN.txt", "w+");
+	for (int i = 0; i < n; i++) {
+		fprintf(sa_file, "%d\n", sa[i]);
+	}
+
+	for (int i = 0; i < n; i++) {
+		fprintf(lcp_file, "%d\n", lcp[i]);
+	}
+
+	fclose(sa_file);
+	fclose(lcp_file);
+	/*ofstream saFile, lcpFile;
 	saFile.open("C:/nn/sa.txt");
 	lcpFile.open("C:/nn/lcp.txt");
 	for (int i = 0; i < N / 2; i++)
@@ -543,7 +577,7 @@ int main() {
 	}
 	saFile.close();
 	lcpFile.close();
-
+	*/
 	free(sa);
 	free(lcp);
 	int g = 0;
